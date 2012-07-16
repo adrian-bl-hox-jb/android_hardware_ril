@@ -212,8 +212,6 @@ static void dispatchCdmaBrSmsCnf(Parcel &p, RequestInfo *pRI);
 static void dispatchRilCdmaSmsWriteArgs(Parcel &p, RequestInfo *pRI);
 static int responseInts(Parcel &p, void *response, size_t responselen);
 static int responseStrings(Parcel &p, void *response, size_t responselen);
-static int responseStringsNetworks(Parcel &p, void *response, size_t responselen);
-static int responseStrings(Parcel &p, void *response, size_t responselen, bool network_search);
 static int responseString(Parcel &p, void *response, size_t responselen);
 static int responseVoid(Parcel &p, void *response, size_t responselen);
 static int responseCallList(Parcel &p, void *response, size_t responselen);
@@ -1413,16 +1411,8 @@ static int responseStringsWithVersion(int version, Parcel &p, void *response, si
     return responseStrings(p, response, responselen);
 }
 
-static int responseStrings(Parcel &p, void *response, size_t responselen) {
-    return responseStrings(p, response, responselen, false);
-}
-
-static int responseStringsNetworks(Parcel &p, void *response, size_t responselen) {
-    return responseStrings(p, response, responselen, true);
-}
-
 /** response is a char **, pointing to an array of char *'s */
-static int responseStrings(Parcel &p, void *response, size_t responselen, bool network_search) {
+static int responseStrings(Parcel &p, void *response, size_t responselen) {
     int numStrings;
 
     if (response == NULL && responselen != 0) {
@@ -1441,28 +1431,11 @@ static int responseStrings(Parcel &p, void *response, size_t responselen, bool n
         char **p_cur = (char **) response;
 
         numStrings = responselen / sizeof(char *);
-#ifdef NEW_LIBRIL_HTC
-        if (network_search == true) {
-            // We only want four entries for each network
-            p.writeInt32(numStrings - (numStrings / 5));
-        } else {
-            p.writeInt32(numStrings);
-        }
-        int sCount = 0;
-#else
         p.writeInt32 (numStrings);
-#endif
 
         /* each string*/
         startResponse;
         for (int i = 0 ; i < numStrings ; i++) {
-#ifdef NEW_LIBRIL_HTC
-            sCount++;
-            if (network_search == true && sCount % 5 == 0) {
-                sCount = 0;
-                continue;
-            }
-#endif
             appendPrintBuf("%s%s,", printBuf, (char*)p_cur[i]);
             writeStringToParcel (p, p_cur[i]);
         }
